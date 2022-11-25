@@ -87,13 +87,13 @@ def get_all_times(workflows, job_name: re.Pattern, step_name: re.Pattern):
     for i, url in enumerate(urls):
         url_hash = hashlib.md5(url.encode()).hexdigest()
         cache_name = f"{url_hash}.json"
-        print(i, url, file=sys.stderr)
 
         # Cache or GET.
         if os.path.exists(cache_name):
             with open(cache_name, "r") as f:
                 jobs = json.load(f)
         else:
+            print(i, url, file=sys.stderr)
             jobs = json.loads(urlopen(Request(url, headers=default_headers(), method="GET")).read())
             with open(cache_name, "w") as f:
                 json.dump(jobs, f)
@@ -121,8 +121,7 @@ if __name__ == "__main__":
 
     try:
         if args.update:
-            min_date = datetime.strptime(args.since, "%Y-%m-%d")
-            min_date.replace(tzinfo=timezone.utc)
+            min_date = datetime.strptime(args.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             get_workflows(
                 min_date=min_date,
                 max_date=datetime.now(timezone.utc)
