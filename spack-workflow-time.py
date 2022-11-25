@@ -10,6 +10,9 @@ import re
 
 GITHUB_URL = "https://api.github.com/repos/spack/spack"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+CACHE_PATH = ".cache"
+WORKFLOW_RUNS = os.path.join(CACHE_PATH, "workflow_runs.json")
+
 
 def default_headers():
     return {
@@ -29,7 +32,7 @@ def created_extrema(workflows):
 def get_workflows(min_date, max_date):
     # Read cached results.
     try:
-        with open("workflow_runs.json", "r") as f:
+        with open(WORKFLOW_RUNS, "r") as f:
             workflow_runs = json.load(f)
             curr_min, curr_max = created_extrema(workflow_runs.values())
     except OSError:
@@ -54,7 +57,7 @@ def get_workflows(min_date, max_date):
                 page = 1
                 max = curr_min
 
-        with open("workflow_runs.json", "w") as f:
+        with open(WORKFLOW_RUNS, "w") as f:
             json.dump(workflow_runs, f)
 
 
@@ -86,7 +89,7 @@ def get_all_times(workflows, job_name: re.Pattern, step_name: re.Pattern):
 
     for i, url in enumerate(urls):
         url_hash = hashlib.md5(url.encode()).hexdigest()
-        cache_name = f"{url_hash}.json"
+        cache_name = os.path.join(CACHE_PATH, f"{url_hash}.json")
 
         # Cache or GET.
         if os.path.exists(cache_name):
@@ -116,9 +119,11 @@ if __name__ == "__main__":
     parser.add_argument("--github-token", help="GitHub token, initialized with GITHUB_TOKEN environment variable", action="store")
     args = parser.parse_args()
 
+    if not os.path.isdir(CACHE_PATH):
+        os.mkdir(CACHE_PATH)
+
     if args.github_token:
         GITHUB_TOKEN = args.github_token
-
     try:
         if args.update:
             min_date = datetime.strptime(args.since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -128,7 +133,7 @@ if __name__ == "__main__":
             )
 
         try:
-            with open("workflow_runs.json", "r") as f:
+            with open(WORKFLOW_RUNS, "r") as f:
                 workflows = json.load(f)
         except OSError:
             print("Run with --update to get the latest workflows.")
