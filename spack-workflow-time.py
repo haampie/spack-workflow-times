@@ -105,7 +105,7 @@ def get_all_times(workflows, job_name: re.Pattern, step_name: re.Pattern):
         if times is None:
             continue
         job_id, started_at, completed_at = times
-        timestamp, duration = started_at.timestamp(), (completed_at - started_at).seconds
+        timestamp, duration = started_at.strftime("%Y-%m-%d %H:%M:%S"), (completed_at - started_at).seconds
         print(f"{job_id}\t{timestamp}\t{duration}", flush=True)
 
 
