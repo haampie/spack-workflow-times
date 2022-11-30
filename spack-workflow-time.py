@@ -73,15 +73,17 @@ def get_workflows(min_date, max_date):
     return workflow_runs
 
 def get_time(jobs, job_name: re.Pattern, step_name: re.Pattern):
-    job = next((j for j in jobs["jobs"] if job_name.search(j["name"])), None)
-    if not job:
-        return None
-    step = next((s for s in job["steps"] if step_name.search(s["name"])), None)
-    if not step or step["conclusion"] != "success":
-        return None
-    started_at = datetime.fromisoformat(step["started_at"])
-    completed_at = datetime.fromisoformat(step["completed_at"])
-    return job["id"], started_at, completed_at
+    for job in jobs["jobs"]:
+        if not job_name.search(job["name"]):
+            continue
+        for step in job["steps"]:
+            if not step_name.search(step["name"]):
+                continue
+            if step["conclusion"] != "success":
+                continue
+            started_at = datetime.fromisoformat(step["started_at"])
+            completed_at = datetime.fromisoformat(step["completed_at"])
+            yield job["id"], job["name"], started_at, completed_at
 
 
 def get_all_times(workflows, job_name: re.Pattern, step_name: re.Pattern):
@@ -101,12 +103,11 @@ def get_all_times(workflows, job_name: re.Pattern, step_name: re.Pattern):
             with open(cache_name, "w") as f:
                 json.dump(jobs, f)
 
-        times = get_time(jobs, job_name=job_name, step_name=step_name)
-        if times is None:
-            continue
-        job_id, started_at, completed_at = times
-        timestamp, duration = started_at.strftime("%Y-%m-%d %H:%M:%S"), (completed_at - started_at).seconds
-        print(f"{job_id}\t{timestamp}\t{duration}", flush=True)
+        for times in get_time(jobs, job_name=job_name, step_name=step_name):
+            job_id, name, started_at, completed_at = times
+            name = re.sub(r"\s+", '_', re.sub(r"[^\w\s]", '', name))
+            timestamp, duration = started_at.strftime("%Y-%m-%d %H:%M:%S"), (completed_at - started_at).seconds
+            print(f"{job_id}\t{name}\t{timestamp}\t{duration}", flush=True)
 
 
 
